@@ -1,0 +1,54 @@
+agus
+70 65 17 55
+49 1
+50
+21:42:40|FEED|Nom nom! 😋
+21:42:41|PLAY|Wheee! 🎮
+21:42:41|SLEEP|Zzzzz... 😴
+21:42:41|HEAL|Feeling better! 💊
+21:42:41|PASS TIME|Day 31 passed without incident
+21:42:42|PASS TIME|Day 32 - Tamagotchi got distracted and spaced out 💭
+21:42:42|FEED|Nom nom! 😋
+21:42:42|PLAY|Wheee! 🎮
+21:42:42|SLEEP|Zzzzz... 😴
+21:42:43|HEAL|Feeling better! 💊
+21:42:43|PASS TIME|Day 33 - Tamagotchi found some tasty leftovers 🍖
+21:42:44|PASS TIME|Day 34 passed without incident
+21:42:44|FEED|Nom nom! 😋
+21:42:44|PLAY|Wheee! 🎮
+21:42:44|SLEEP|Zzzzz... 😴
+21:42:44|HEAL|Feeling better! 💊
+21:42:45|PASS TIME|Day 35 - Tamagotchi discovered a fresh juicy fruit 🍎
+21:42:45|FEED|Nom nom! 😋
+21:42:45|FEED|Nom nom! 😋
+21:42:46|PASS TIME|Day 36 - Tamagotchi danced around with joy 💃
+21:42:47|FEED|Nom nom! 😋
+21:42:47|PLAY|Wheee! 🎮
+21:42:47|HEAL|Feeling better! 💊
+21:42:47|PASS TIME|Day 37 passed without incident
+21:42:48|PASS TIME|Day 38 passed without incident
+21:42:50|PASS TIME|Day 39 - Lucky! Tamagotchi found some coins 💰
+21:42:52|PASS TIME|Day 40 passed without incident
+21:42:55|PASS TIME|Day 41 - Tamagotchi found an old toy to play with 🧸
+21:42:55|FEED|Nom nom! 😋
+21:42:56|PLAY|Wheee! 🎮
+21:42:56|SLEEP|Zzzzz... 😴
+21:42:56|HEAL|Feeling better! 💊
+21:42:57|PASS TIME|Day 42 - Tamagotchi watched beautiful meteor shower ⭐
+21:42:58|PASS TIME|Day 43 - Tamagotchi ate too much and felt bloated 🤢
+21:43:00|FEED|Nom nom! 😋
+21:43:00|FEED|Nom nom! 😋
+21:43:00|FEED|Nom nom! 😋
+21:43:01|FEED|Nom nom! 😋
+21:43:01|PLAY|Wheee! 🎮
+21:43:01|SLEEP|Zzzzz... 😴
+21:43:01|HEAL|Feeling better! 💊
+21:43:02|SLEEP|Zzzzz... 😴
+21:43:02|FEED|Nom nom! 😋
+21:43:02|FEED|Nom nom! 😋
+21:43:05|PASS TIME|Day 44 - Tamagotchi discovered a fresh juicy fruit 🍎
+21:43:05|PASS TIME|Day 45 - Tamagotchi made a new friend and played together 👫
+21:43:06|PASS TIME|Day 46 - Tamagotchi caught a cold and feels awful 🤧
+21:43:06|PASS TIME|Day 47 - Tamagotchi found some tasty leftovers 🍖
+21:43:06|PASS TIME|Day 48 - Tamagotchi ate too much and felt bloated 🤢
+21:43:07|PASS TIME|Day 49 passed without incident

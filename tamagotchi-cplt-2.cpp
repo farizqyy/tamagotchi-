@@ -1,47 +1,26 @@
 #include <iostream>
 #include <string>
-#include <functional>
 #include <vector>
 #include <ctime>
-#include <iomanip>
-#include <algorithm>
-#include <fstream>
-#include <cstdint>
 #include <cstdlib>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <cmath>
 
-// Components
-#include <ftxui/component/component.hpp>
-#include <ftxui/component/component_base.hpp>
-#include <ftxui/component/component_options.hpp>
-#include <ftxui/component/event.hpp>
-#include <ftxui/component/loop.hpp>
-#include <ftxui/component/mouse.hpp>
-#include <ftxui/component/receiver.hpp>
-#include <ftxui/component/screen_interactive.hpp>
+#include "ftxui/component/component.hpp"
+#include "ftxui/component/component_base.hpp"
+#include "ftxui/component/screen_interactive.hpp"
+#include "ftxui/dom/elements.hpp"
+#include "ftxui/dom/node.hpp"
+#include "ftxui/screen/color.hpp"
 
-// DOM
-#include <ftxui/dom/canvas.hpp>
-#include <ftxui/dom/direction.hpp>
-#include <ftxui/dom/elements.hpp>
-#include <ftxui/dom/flexbox_config.hpp>
-#include <ftxui/dom/node.hpp>
-#include <ftxui/dom/table.hpp>
+using namespace ftxui;
 
-// Screen
-#include <ftxui/screen/box.hpp>
-#include <ftxui/screen/color.hpp>
-#include <ftxui/screen/screen.hpp>
-#include <ftxui/screen/string.hpp>
-#include <ftxui/screen/terminal.hpp>
+// ═══════════════════════════════════════════════════════════════
+// STRUCTS
+// ═══════════════════════════════════════════════════════════════
 
-#ifdef _WIN32
-    #include <windows.h>
-#endif
-#include <locale>
-
-// ─────────────────────────────────────────────
-// STRUCT — main entities
-// ─────────────────────────────────────────────
 struct StatusLog {
     std::string timestamp;
     std::string action;
@@ -50,23 +29,31 @@ struct StatusLog {
 
 struct Tamagotchi {
     std::string name;
-    int         hunger;
-    int         happiness;
-    int         energy;
-    int         health;
-    int         age;
-    bool        alive;
+    int hunger     = 50;
+    int happiness  = 70;
+    int energy     = 80;
+    int health     = 100;
+    int age        = 0;
+    bool alive     = true;
     std::vector<StatusLog> logs;
 };
 
-struct EncounterEvent {
-    std::string name;
-    std::string description;
-    int hungerDelta;
-    int happinessDelta;
-    int energyDelta;
-    int healthDelta;
+// ═══════════════════════════════════════════════════════════════
+// RANDOM ENCOUNTER DEFINITION
+// ═══════════════════════════════════════════════════════════════
+
+struct Encounter {
+    std::string title;          // Short name
+    std::string description;    // What happened to tamagotchi
+    int hunger_delta;
+    int happiness_delta;
+    int energy_delta;
+    int health_delta;
 };
+
+// ═══════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════
 
 template<typename T>
 inline T clamp(T value, T minVal, T maxVal) {
@@ -75,584 +62,595 @@ inline T clamp(T value, T minVal, T maxVal) {
     return value;
 }
 
-// ─────────────────────────────────────────────
-// NAMESPACE — Utils
-// ─────────────────────────────────────────────
-namespace Utils {
-    std::string currentTime() {
-        std::time_t t = std::time(nullptr);
-        char buf[20];
-        std::strftime(buf, sizeof(buf), "%H:%M:%S", std::localtime(&t));
-        return std::string(buf);
-    }
+std::string currentTime() {
+    std::time_t t = std::time(nullptr);
+    char buf[20];
+    std::strftime(buf, sizeof(buf), "%H:%M:%S", std::localtime(&t));
+    return std::string(buf);
+}
 
-    inline bool isAlive(const Tamagotchi& t) {
-        return t.alive && t.health > 0;
-    }
-
-    inline std::string getStatusLabel(int value) {
-        if (value >= 75) return "Excellent";
-        if (value >= 50) return "Good";
-        if (value >= 25) return "Low";
-        return "Critical";
-    }
-
-    inline std::string bar(int value, int width = 20) {
-        int filled = (value * width) / 100;
-        std::string b = "[";
-        for (int i = 0; i < width; i++)
-            b += (i < filled) ? "#" : "-";
-        b += "]";
-        return b;
-    }
-
-    void addLog(Tamagotchi& t, const std::string& action, const std::string& detail) {
-        StatusLog log;
-        log.timestamp = currentTime();
-        log.action    = action;
-        log.detail    = detail;
-        t.logs.push_back(log);
-    }
-
-    void writeString(std::ofstream& f, const std::string& s) {
-        uint32_t len = static_cast<uint32_t>(s.size());
-        f.write(reinterpret_cast<const char*>(&len), sizeof(len));
-        f.write(s.data(), len);
-    }
-
-    std::string readString(std::ifstream& f) {
-        uint32_t len = 0;
-        f.read(reinterpret_cast<char*>(&len), sizeof(len));
-        std::string s(len, '\0');
-        f.read(&s[0], len);
-        return s;
+void addLog(Tamagotchi& t, const std::string& action, const std::string& detail) {
+    StatusLog log;
+    log.timestamp = currentTime();
+    log.action = action;
+    log.detail = detail;
+    t.logs.push_back(log);
+    if (t.logs.size() > 50) {
+        t.logs.erase(t.logs.begin());
     }
 }
 
-// ─────────────────────────────────────────────
-// NAMESPACE — TamagotchiEngine
-// ─────────────────────────────────────────────
-namespace TamagotchiEngine {
-    using ActionFunc = std::function<void(Tamagotchi&)>;
+// ═══════════════════════════════════════════════════════════════
+// ENCOUNTER TABLE
+// ═══════════════════════════════════════════════════════════════
 
-    Tamagotchi* createTamagotchi(
-        const std::string& name,
-        int hunger    = 50,
-        int happiness = 70,
-        int energy    = 80,
-        int health    = 100
-    ) {
-        Tamagotchi* t = new Tamagotchi();
-        t->name      = name;
-        t->hunger    = clamp(hunger,    0, 100);
-        t->happiness = clamp(happiness, 0, 100);
-        t->energy    = clamp(energy,    0, 100);
-        t->health    = clamp(health,    0, 100);
-        t->age       = 0;
-        t->alive     = true;
+const Encounter ENCOUNTER_TABLE[] = {
+    // Neutral/Good events
+    { "Nap Time", "Tamagotchi fell asleep and took a nap 😴", +5, 0, +20, +5 },
+    { "Found Food", "Tamagotchi found some tasty leftovers 🍖", -25, +10, 0, 0 },
+    { "Sunny Day", "Beautiful weather made Tamagotchi feel great ☀️", -5, +20, +5, +10 },
+    { "Found Fruit", "Tamagotchi discovered a fresh juicy fruit 🍎", -20, +15, 0, +5 },
+    
+    // Mixed/Bad events
+    { "Got Rained On", "Tamagotchi got caught in the rain and got wet 🌧️", +5, -10, -15, -10 },
+    { "Got Sick", "Tamagotchi caught a cold and feels awful 🤧", +10, -20, -15, -30 },
+    { "Made a Friend", "Tamagotchi made a new friend and played together 👫", +5, +30, -10, +5 },
+    { "Bad Dream", "Tamagotchi had a terrible nightmare 😰", 0, -25, 0, -10 },
+    
+    // More varied impacts
+    { "Lost in Thought", "Tamagotchi got distracted and spaced out 💭", +15, -15, 0, -5 },
+    { "Ate Too Much", "Tamagotchi ate too much and felt bloated 🤢", +30, -5, -10, -15 },
+    { "Danced Around", "Tamagotchi danced around with joy 💃", 0, +25, -20, 0 },
+    { "Found a Toy", "Tamagotchi found an old toy to play with 🧸", -10, +20, -5, 0 },
+    
+    // Extreme encounters
+    { "Earthquake!", "The ground shook! Tamagotchi got startled 😱", 0, -30, -20, -20 },
+    { "Found Money", "Lucky! Tamagotchi found some coins 💰", -15, +35, +10, +10 },
+    { "Fought with Bug", "Tamagotchi fought a big scary bug 🐛", +20, -20, -25, -15 },
+    { "Meteor Shower", "Tamagotchi watched beautiful meteor shower ⭐", 0, +30, +5, 0 },
+};
 
-        Utils::addLog(*t, "BORN", "Tamagotchi " + name + " has been born!");
-        return t;
+const int ENCOUNTER_COUNT = sizeof(ENCOUNTER_TABLE) / sizeof(ENCOUNTER_TABLE[0]);
+const int ENCOUNTER_CHANCE = 60;  // 60% chance each day
+
+// ═══════════════════════════════════════════════════════════════
+// IMPROVED FRUTIGER AERO COLORS (Better Contrast)
+// ═══════════════════════════════════════════════════════════════
+
+// Background: Light gradient
+Color bg_light_blue = Color::RGB(200, 230, 250);      // Very light blue
+Color bg_gradient = Color::RGB(230, 240, 250);         // Almost white-blue
+
+// Primary UI: Strong blues
+Color primary_dark = Color::RGB(41, 128, 185);         // Strong steel blue
+Color primary_light = Color::RGB(52, 152, 219);        // Bright sky blue
+
+// Accent colors: High contrast against light background
+Color accent_orange = Color::RGB(230, 126, 34);        // Darker orange
+Color accent_green = Color::RGB(39, 174, 96);          // Darker green
+Color accent_cyan = Color::RGB(26, 188, 156);          // Darker teal
+Color accent_red = Color::RGB(231, 76, 60);            // Darker red
+
+// Text colors
+Color text_dark = Color::RGB(44, 62, 80);              // Very dark gray
+Color text_light = Color::RGB(255, 255, 255);          // White
+
+// ═══════════════════════════════════════════════════════════════
+// SAVE/LOAD SUPPORT
+// ═══════════════════════════════════════════════════════════════
+
+bool savePet(const Tamagotchi& pet, const std::string& filename = "tama_save.txt") {
+    std::ofstream file(filename);
+    if (!file.is_open()) return false;
+    
+    file << pet.name << "\n";
+    file << pet.hunger << " " << pet.happiness << " " << pet.energy << " " << pet.health << "\n";
+    file << pet.age << " " << (pet.alive ? 1 : 0) << "\n";
+    file << pet.logs.size() << "\n";
+    
+    for (const auto& log : pet.logs) {
+        file << log.timestamp << "|" << log.action << "|" << log.detail << "\n";
     }
+    
+    file.close();
+    return true;
+}
 
-    void applyAction(Tamagotchi& t, ActionFunc action, const std::string& actionName) {
-        if (!Utils::isAlive(t)) {
-            return;
-        }
-        action(t);
-        if (t.hunger >= 100 || t.health <= 0) {
-            t.alive = false;
-            Utils::addLog(t, "DIED", "Critical condition — " + t.name + " has passed away.");
-        }
-    }
-
-    void feedAction(Tamagotchi& t) {
-        t.hunger    = clamp(t.hunger - 30,    0, 100);
-        t.happiness = clamp(t.happiness + 10, 0, 100);
-        t.energy    = clamp(t.energy + 5,     0, 100);
-        Utils::addLog(t, "FEED", "Hunger -30 | Happiness +10 | Energy +5");
-    }
-
-    void playAction(Tamagotchi& t) {
-        if (t.energy < 20) {
-            Utils::addLog(t, "PLAY", "Failed — energy too low");
-            return;
-        }
-        t.happiness = clamp(t.happiness + 25, 0, 100);
-        t.energy    = clamp(t.energy - 20,    0, 100);
-        t.hunger    = clamp(t.hunger + 15,    0, 100);
-        Utils::addLog(t, "PLAY", "Happiness +25 | Energy -20 | Hunger +15");
-    }
-
-    void sleepAction(Tamagotchi& t) {
-        t.energy    = clamp(t.energy + 40,    0, 100);
-        t.hunger    = clamp(t.hunger + 10,    0, 100);
-        t.health    = clamp(t.health + 5,     0, 100);
-        Utils::addLog(t, "SLEEP", "Energy +40 | Hunger +10 | Health +5");
-    }
-
-    void healAction(Tamagotchi& t) {
-        t.health    = clamp(t.health + 30,    0, 100);
-        t.energy    = clamp(t.energy + 10,    0, 100);
-        Utils::addLog(t, "HEAL", "Health +30 | Energy +10");
-    }
-
-    using EncounterModifier = std::function<void(Tamagotchi&, const EncounterEvent&)>;
-
-    const EncounterEvent ENCOUNTER_TABLE[] = {
-        { "FLU",           "Caught the flu! Runny nose all day...",
-          +10,  -15,  -10,  -20 },
-        { "FOOD POISONING","Ate something weird, stomach ache!",
-          +20,  -20,   -5,  -25 },
-        { "CAUGHT IN RAIN","Got drenched without an umbrella!",
-          +5,   -10,  -15,  -15 },
-        { "SCARED",        "Encountered something terrifying!",
-           0,   -25,  -20,   -5 },
-        { "MOSQUITO BITE", "Got bitten by mosquitoes while sleeping...",
-          +5,   -10,   -5,  -10 },
-        { "INSOMNIA",      "Couldn't sleep well last night.",
-          +10,   -5,  -25,  -10 },
-        { "HEATSTROKE",    "Scorching weather, feeling dehydrated!",
-          +15,  -10,  -20,  -15 },
-        { "BEAUTIFUL DAY", "Sunny weather, feeling great!",
-          -5,   +20,  +10,   +5 },
-        { "SURPRISE GIFT", "Found an unexpected gift on the way!",
-           0,   +25,  +10,  +10 },
-        { "FOUND FRUIT",   "Found some fresh and delicious fruit!",
-          -15,  +10,  +10,   +5 },
-        { "MASSAGE",       "Got a relaxing massage from a friend.",
-           0,   +15,  +20,  +10 },
-        { "LOVELY MUSIC",  "Heard some soul-soothing music.",
-           0,   +20,   +5,   +5 },
-    };
-
-    const int ENCOUNTER_COUNT = sizeof(ENCOUNTER_TABLE) / sizeof(ENCOUNTER_TABLE[0]);
-    const int ENCOUNTER_CHANCE = 60;
-
-    void applyEncounter(
-        Tamagotchi& t,
-        const EncounterEvent& ev,
-        EncounterModifier modifier
-    ) {
-        modifier(t, ev);
-        Utils::addLog(t, "EVENT", ev.name + ": " + ev.description);
-    }
-
-    bool triggerRandomEncounter(Tamagotchi& t) {
-        if ((std::rand() % 100) >= ENCOUNTER_CHANCE) return false;
-
-        const EncounterEvent& ev =
-            ENCOUNTER_TABLE[std::rand() % ENCOUNTER_COUNT];
-
-        applyEncounter(t, ev, [](Tamagotchi& pet, const EncounterEvent& e) {
-            pet.hunger    = clamp(pet.hunger    + e.hungerDelta,    0, 100);
-            pet.happiness = clamp(pet.happiness + e.happinessDelta, 0, 100);
-            pet.energy    = clamp(pet.energy    + e.energyDelta,    0, 100);
-            pet.health    = clamp(pet.health    + e.healthDelta,    0, 100);
-        });
-
-        return true;
-    }
-
-    void ageTick(Tamagotchi& t) {
-        t.age++;
-        t.hunger    = clamp(t.hunger + 10,    0, 100);
-        t.happiness = clamp(t.happiness - 5,  0, 100);
-        t.energy    = clamp(t.energy - 8,     0, 100);
-        if (t.hunger >= 80) t.health = clamp(t.health - 15, 0, 100);
-        if (t.happiness <= 20) t.health = clamp(t.health - 5, 0, 100);
-
-        Utils::addLog(t, "TIME",
-            "Day " + std::to_string(t.age) +
-            " | Hunger +10 | Happiness -5 | Energy -8");
-    }
-
-    bool saveGame(const Tamagotchi& t, const std::string& filename = "tamagotchi.sav") {
-        std::ofstream file(filename, std::ios::binary);
-        if (!file.is_open()) {
-            return false;
-        }
-
-        const char magic[4] = {'T','A','M','A'};
-        const uint8_t version = 1;
-        file.write(magic, 4);
-        file.write(reinterpret_cast<const char*>(&version), sizeof(version));
-
-        Utils::writeString(file, t.name);
-        file.write(reinterpret_cast<const char*>(&t.hunger),    sizeof(t.hunger));
-        file.write(reinterpret_cast<const char*>(&t.happiness), sizeof(t.happiness));
-        file.write(reinterpret_cast<const char*>(&t.energy),    sizeof(t.energy));
-        file.write(reinterpret_cast<const char*>(&t.health),    sizeof(t.health));
-        file.write(reinterpret_cast<const char*>(&t.age),       sizeof(t.age));
-        uint8_t alive = t.alive ? 1 : 0;
-        file.write(reinterpret_cast<const char*>(&alive),       sizeof(alive));
-
-        uint32_t logCount = static_cast<uint32_t>(t.logs.size());
-        file.write(reinterpret_cast<const char*>(&logCount), sizeof(logCount));
-        for (const StatusLog& log : t.logs) {
-            Utils::writeString(file, log.timestamp);
-            Utils::writeString(file, log.action);
-            Utils::writeString(file, log.detail);
-        }
-
-        file.close();
-        return true;
-    }
-
-    Tamagotchi* loadGame(const std::string& filename = "tamagotchi.sav") {
-        std::ifstream file(filename, std::ios::binary);
-        if (!file.is_open()) {
-            return nullptr;
-        }
-
-        char magic[4];
-        file.read(magic, 4);
-        if (magic[0]!='T' || magic[1]!='A' || magic[2]!='M' || magic[3]!='A') {
-            return nullptr;
-        }
-
-        uint8_t version = 0;
-        file.read(reinterpret_cast<char*>(&version), sizeof(version));
-        if (version != 1) {
-            return nullptr;
-        }
-
-        Tamagotchi* t = new Tamagotchi();
-
-        t->name = Utils::readString(file);
-        file.read(reinterpret_cast<char*>(&t->hunger),    sizeof(t->hunger));
-        file.read(reinterpret_cast<char*>(&t->happiness), sizeof(t->happiness));
-        file.read(reinterpret_cast<char*>(&t->energy),    sizeof(t->energy));
-        file.read(reinterpret_cast<char*>(&t->health),    sizeof(t->health));
-        file.read(reinterpret_cast<char*>(&t->age),       sizeof(t->age));
-        uint8_t alive = 0;
-        file.read(reinterpret_cast<char*>(&alive), sizeof(alive));
-        t->alive = (alive == 1);
-
-        uint32_t logCount = 0;
-        file.read(reinterpret_cast<char*>(&logCount), sizeof(logCount));
-        for (uint32_t i = 0; i < logCount; i++) {
+bool loadPet(Tamagotchi& pet, const std::string& filename = "tama_save.txt") {
+    std::ifstream file(filename);
+    if (!file.is_open()) return false;
+    
+    std::getline(file, pet.name);
+    file >> pet.hunger >> pet.happiness >> pet.energy >> pet.health;
+    file >> pet.age;
+    
+    int alive_int;
+    file >> alive_int;
+    pet.alive = (alive_int == 1);
+    
+    size_t log_count;
+    file >> log_count;
+    file.ignore();  // Ignore newline after log_count
+    
+    for (size_t i = 0; i < log_count; i++) {
+        std::string line;
+        std::getline(file, line);
+        
+        size_t pos1 = line.find('|');
+        size_t pos2 = line.find('|', pos1 + 1);
+        
+        if (pos1 != std::string::npos && pos2 != std::string::npos) {
             StatusLog log;
-            log.timestamp = Utils::readString(file);
-            log.action    = Utils::readString(file);
-            log.detail    = Utils::readString(file);
-            t->logs.push_back(log);
+            log.timestamp = line.substr(0, pos1);
+            log.action = line.substr(pos1 + 1, pos2 - pos1 - 1);
+            log.detail = line.substr(pos2 + 1);
+            pet.logs.push_back(log);
         }
-
-        file.close();
-        Utils::addLog(*t, "LOAD", "Data loaded — day " + std::to_string(t->age));
-        return t;
     }
+    
+    file.close();
+    return true;
+}
 
-    inline bool saveExists(const std::string& filename = "tamagotchi.sav") {
-        std::ifstream f(filename);
-        return f.good();
+bool saveFileExists(const std::string& filename = "tama_save.txt") {
+    std::ifstream file(filename);
+    return file.good();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UI COMPONENTS
+// ═══════════════════════════════════════════════════════════════
+
+Element aeroGradientBox(const std::string& title, Element content) {
+    return window(
+        text(title) | bold | color(text_light) | bgcolor(primary_dark),
+        content | color(text_dark)
+    ) | border | color(primary_dark) | bgcolor(bg_light_blue);
+}
+
+Element statusBar(const std::string& label, int value, Color barColor) {
+    int width = 20;
+    int filled = (value * width) / 100;
+    
+    std::string bar = "[";
+    for (int i = 0; i < width; i++) {
+        bar += (i < filled) ? "█" : "░";
+    }
+    bar += "]";
+    
+    std::stringstream ss;
+    ss << std::setw(3) << value << "%";
+    
+    return hbox({
+        text(label) | size(WIDTH, EQUAL, 12) | color(text_dark),
+        text(bar) | color(barColor),
+        text(ss.str()) | color(text_dark)
+    });
+}
+
+Element tamagotchiDisplay(const Tamagotchi& pet) {
+    std::vector<Element> stats;
+    
+    // Title with age
+    stats.push_back(
+        hbox({
+            text("🐾 " + pet.name) | bold | color(primary_dark),
+            text(" | Day " + std::to_string(pet.age)) | color(primary_light)
+        }) | center
+    );
+    
+    stats.push_back(separator());
+    
+    // Status indicator
+    std::string status = pet.alive ? "✓ ALIVE" : "✗ DECEASED";
+    Color statusColor = pet.alive ? accent_green : accent_red;
+    stats.push_back(
+        text(status) | color(statusColor) | bold | center
+    );
+    
+    stats.push_back(text(""));  // Spacing
+    
+    // Stats bars
+    stats.push_back(text("═══════════════════════") | center | color(primary_light));
+    stats.push_back(statusBar("Fullness ", 100 - pet.hunger, accent_orange));
+    stats.push_back(statusBar("Happiness", pet.happiness, accent_cyan));
+    stats.push_back(statusBar("Energy   ", pet.energy, accent_green));
+    stats.push_back(statusBar("Health   ", pet.health, primary_light));
+    stats.push_back(text("═══════════════════════") | center | color(primary_light));
+    
+    return vbox(stats);
+}
+
+Element actionButton(const std::string& label, const std::string& key) {
+    return hbox({
+        text(" " + label + " ") | border | center | bold | color(text_light) | bgcolor(primary_dark),
+        text(" [" + key + "]") | color(primary_light)
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TAMAGOTCHI ENGINE
+// ═══════════════════════════════════════════════════════════════
+
+void feedPet(Tamagotchi& t) {
+    if (!t.alive) return;
+    t.hunger = clamp(t.hunger - 30, 0, 100);
+    t.happiness = clamp(t.happiness + 10, 0, 100);
+    t.energy = clamp(t.energy + 5, 0, 100);
+    addLog(t, "FEED", "Nom nom! 😋");
+}
+
+void playWithPet(Tamagotchi& t) {
+    if (!t.alive) return;
+    if (t.energy < 20) {
+        addLog(t, "PLAY", "Too tired... 😴");
+        return;
+    }
+    t.happiness = clamp(t.happiness + 25, 0, 100);
+    t.energy = clamp(t.energy - 20, 0, 100);
+    t.hunger = clamp(t.hunger + 15, 0, 100);
+    addLog(t, "PLAY", "Wheee! 🎮");
+}
+
+void sleepPet(Tamagotchi& t) {
+    if (!t.alive) return;
+    t.energy = clamp(t.energy + 40, 0, 100);
+    t.hunger = clamp(t.hunger + 10, 0, 100);
+    t.health = clamp(t.health + 5, 0, 100);
+    addLog(t, "SLEEP", "Zzzzz... 😴");
+}
+
+void healPet(Tamagotchi& t) {
+    if (!t.alive) return;
+    t.health = clamp(t.health + 30, 0, 100);
+    t.energy = clamp(t.energy + 10, 0, 100);
+    addLog(t, "HEAL", "Feeling better! 💊");
+}
+
+void passTime(Tamagotchi& t) {
+    if (!t.alive) return;
+    
+    // Age the pet
+    t.age++;
+    t.hunger = clamp(t.hunger + 10, 0, 100);
+    t.happiness = clamp(t.happiness - 5, 0, 100);
+    t.energy = clamp(t.energy - 8, 0, 100);
+    
+    // Apply stat penalties
+    if (t.hunger >= 80) t.health = clamp(t.health - 15, 0, 100);
+    if (t.happiness <= 20) t.health = clamp(t.health - 5, 0, 100);
+    
+    // Check death condition
+    if (t.hunger >= 100 || t.health <= 0) {
+        t.alive = false;
+        addLog(t, "DIED", "Rest in peace... 💀");
+        return;
+    }
+    
+    // Random encounter (60% chance)
+    if ((std::rand() % 100) < ENCOUNTER_CHANCE) {
+        const Encounter& enc = ENCOUNTER_TABLE[std::rand() % ENCOUNTER_COUNT];
+        
+        t.hunger = clamp(t.hunger + enc.hunger_delta, 0, 100);
+        t.happiness = clamp(t.happiness + enc.happiness_delta, 0, 100);
+        t.energy = clamp(t.energy + enc.energy_delta, 0, 100);
+        t.health = clamp(t.health + enc.health_delta, 0, 100);
+        
+        // Log with detailed encounter description
+        std::string detail = "Day " + std::to_string(t.age) + " - " + enc.description;
+        addLog(t, "PASS TIME", detail);
+    } else {
+        addLog(t, "PASS TIME", "Day " + std::to_string(t.age) + " passed without incident");
     }
 }
 
-// ─────────────────────────────────────────────
-// FTXUI TUI APPLICATION — Frutiger Aero Theme
-// ─────────────────────────────────────────────
-using namespace ftxui;
+// ═══════════════════════════════════════════════════════════════
+// MAIN UI COMPONENT
+// ═══════════════════════════════════════════════════════════════
 
 class TamagotchiApp {
 public:
-    Tamagotchi* pet;
-    int selected_menu = 0;
-    std::string encounter_message;
-    std::string action_message;
-    bool show_encounter = false;
-    bool game_over = false;
-
-    TamagotchiApp() : pet(nullptr), selected_menu(0) {}
-
-    ~TamagotchiApp() {
-        if (pet) delete pet;
+    Tamagotchi pet;
+    std::string status_message;
+    int message_timeout = 0;
+    
+    TamagotchiApp(const std::string& name) : pet() {
+        pet.name = name;
+        pet.hunger = 50;
+        pet.happiness = 70;
+        pet.energy = 80;
+        pet.health = 100;
+        pet.age = 0;
+        pet.alive = true;
+        status_message = "";
+        addLog(pet, "BORN", "Welcome to the world!");
     }
-
+    
     Element renderHeader() {
         return vbox({
-            hbox({
-                text("✦ ") | color(Color::Cyan),
-                text("TAMAGOTCHI") | bold | color(Color::RGB(0, 200, 255)),
-                text(" ✦") | color(Color::Magenta)
-            }) | center,
-            text("~ Virtual Pet Simulator ~") | center | color(Color::RGB(255, 150, 100)),
-        }) | bgcolor(Color::RGB(200, 230, 255)) | border;
+            text(" ╔═══════════════════════════════════════╗ ") | color(primary_dark),
+            text(" ║     🐾 TAMAGOTCHI AERO 🐾           ║ ") | color(text_light) | bgcolor(primary_dark),
+            text(" ╚═══════════════════════════════════════╝ ") | color(primary_dark),
+        });
     }
-
-    Element renderPetStatus() {
-        if (!pet || !Utils::isAlive(*pet)) {
-            return text("Pet has passed away...") | center | color(Color::Red);
-        }
-
-        auto stat_bar = [](const std::string& label, int value, Color col) {
-            int filled = (value * 20) / 100;
-            std::string bar_content = "";
-            for (int i = 0; i < 20; i++) {
-                bar_content += (i < filled) ? "█" : "░";
-            }
-
-            return hbox({
-                text(label) | size(WIDTH, EQUAL, 12) | color(Color::White),
-                text(bar_content) | color(col),
-                text(" " + std::to_string(value) + "%") | size(WIDTH, EQUAL, 5) | color(Color::White),
-            });
-        };
-
+    
+    Element renderStatus() {
+        return aeroGradientBox("PET STATUS", tamagotchiDisplay(pet));
+    }
+    
+    Element renderActions() {
         return vbox({
+            text(" ACTIONS (Press 1-8) ") | bold | color(text_light) | bgcolor(primary_dark),
+            text(""),
             hbox({
-                text("Name: ") | color(Color::Yellow),
-                text(pet->name) | bold | color(Color::RGB(255, 200, 100)),
-                text(" | Age: ") | color(Color::Yellow),
-                text(std::to_string(pet->age) + " days") | bold | color(Color::RGB(100, 200, 255)),
+                actionButton("🍽️  FEED", "1") | flex,
+                text(" "),
+                actionButton("🎮 PLAY", "2") | flex,
             }),
-            separator(),
-            stat_bar("Fullness ", 100 - pet->hunger, Color::RGB(255, 100, 150)),
-            stat_bar("Happiness", pet->happiness, Color::RGB(255, 200, 100)),
-            stat_bar("Energy   ", pet->energy, Color::RGB(150, 255, 100)),
-            stat_bar("Health   ", pet->health, Color::RGB(100, 255, 150)),
-        }) | bgcolor(Color::RGB(240, 250, 255)) | border;
+            text(""),
+            hbox({
+                actionButton("😴 SLEEP", "3") | flex,
+                text(" "),
+                actionButton("💊 HEAL", "4") | flex,
+            }),
+            text(""),
+            hbox({
+                actionButton("⏳ PASS TIME", "5") | flex,
+                text(" "),
+                actionButton("💾 SAVE", "6") | flex,
+            }),
+            text(""),
+            hbox({
+                actionButton("📂 LOAD", "7") | flex,
+                text(" "),
+                actionButton("❌ QUIT", "8") | flex,
+            }),
+        }) | border | color(primary_dark) | bgcolor(bg_light_blue);
     }
-
-    Element renderMenu() {
-        std::vector<std::string> menu_items = {
-            "🍖 Feed",
-            "🎮 Play",
-            "😴 Sleep",
-            "💊 Medicine",
-            "⏱ Pass Time",
-            "📋 View Log",
-            "💾 Save Game",
-            "📂 Load Game",
-            "❌ Quit"
-        };
-
-        std::vector<Element> menu_elements;
-        for (size_t i = 0; i < menu_items.size(); i++) {
-            auto element = text(menu_items[i]);
-            if ((int)i == selected_menu) {
-                element = element | bgcolor(Color::RGB(100, 200, 255)) | color(Color::Black) | bold;
-            } else {
-                element = element | color(Color::White);
-            }
-            menu_elements.push_back(element);
-        }
-
-        return vbox(menu_elements) | bgcolor(Color::RGB(200, 150, 255)) | border;
-    }
-
-    Element renderLog() {
-        if (!pet) return text("No logs") | color(Color::White);
-
+    
+    Element renderLogs() {
         std::vector<Element> log_elements;
-        int start = std::max(0, (int)pet->logs.size() - 6);
-
-        for (int i = start; i < (int)pet->logs.size(); i++) {
-            const auto& log = pet->logs[i];
+        
+        log_elements.push_back(
+            text(" ACTIVITY LOG ") | bold | color(text_light) | bgcolor(primary_dark)
+        );
+        
+        int start = std::max(0, (int)pet.logs.size() - 10);
+        
+        for (int i = start; i < (int)pet.logs.size(); i++) {
+            const auto& log = pet.logs[i];
+            std::string log_line = "[" + log.timestamp + "] " + 
+                                  log.action + ": " + log.detail;
             log_elements.push_back(
-                hbox({
-                    text("[" + log.timestamp + "]") | color(Color::Cyan),
-                    text(" "),
-                    text(log.action) | color(Color::Yellow) | bold,
-                    text(": ") | color(Color::White),
-                    text(log.detail) | color(Color::RGB(150, 200, 255)),
-                })
+                text(log_line) | color(text_dark)
             );
         }
-
-        return vbox(log_elements) | bgcolor(Color::RGB(220, 240, 255)) | border;
-    }
-
-    Element renderAction() {
-        if (action_message.empty()) {
-            return text("Ready for commands...") | center | color(Color::RGB(100, 150, 255));
+        
+        if (!status_message.empty() && message_timeout > 0) {
+            log_elements.push_back(text(""));
+            log_elements.push_back(
+                text(">>> " + status_message) | bold | color(accent_green)
+            );
         }
-        return text(action_message) | center | color(Color::RGB(255, 150, 100)) | bold;
+        
+        return vbox(log_elements) | border | color(primary_dark) | bgcolor(bg_light_blue) | flex;
     }
-
-    Element renderEncounter() {
-        if (!show_encounter) {
-            return vbox({
-                text(" "),
-                text(" "),
-            });
-        }
-
-        return vbox({
-            text("✨ RANDOM ENCOUNTER ✨") | bold | center | color(Color::RGB(255, 200, 100)),
-            separator(),
-            text(encounter_message) | center | color(Color::White),
-        }) | bgcolor(Color::RGB(255, 150, 100)) | border;
+    
+    void setStatusMessage(const std::string& msg) {
+        status_message = msg;
+        message_timeout = 3;  // Show for 3 renders
     }
-
-    void executeMenuAction(int choice) {
-        if (!pet) return;
-
-        action_message = "";
-        show_encounter = false;
-
-        switch (choice) {
-            case 0: // Feed
-                if (Utils::isAlive(*pet)) {
-                    TamagotchiEngine::applyAction(*pet, TamagotchiEngine::feedAction, "FEED");
-                    action_message = pet->name + " eats happily! 😋";
-                }
-                break;
-            case 1: // Play
-                if (Utils::isAlive(*pet)) {
-                    if (pet->energy < 20) {
-                        action_message = pet->name + " is too tired... 😴";
-                    } else {
-                        TamagotchiEngine::applyAction(*pet, TamagotchiEngine::playAction, "PLAY");
-                        action_message = pet->name + " plays joyfully! 🎉";
-                    }
-                }
-                break;
-            case 2: // Sleep
-                if (Utils::isAlive(*pet)) {
-                    TamagotchiEngine::applyAction(*pet, TamagotchiEngine::sleepAction, "SLEEP");
-                    action_message = pet->name + " sleeps soundly... Zzz";
-                }
-                break;
-            case 3: // Medicine
-                if (Utils::isAlive(*pet)) {
-                    TamagotchiEngine::applyAction(*pet, TamagotchiEngine::healAction, "HEAL");
-                    action_message = pet->name + " feels better! 💊";
-                }
-                break;
-            case 4: // Pass Time
-                if (Utils::isAlive(*pet)) {
-                    TamagotchiEngine::applyAction(*pet, TamagotchiEngine::ageTick, "TIME");
-                    action_message = "Time passes... Day " + std::to_string(pet->age);
-                    if (TamagotchiEngine::triggerRandomEncounter(*pet)) {
-                        show_encounter = true;
-                        encounter_message = "An event occurred!";
-                    }
-                }
-                break;
-            case 5: // View Log
-                action_message = "Showing action log...";
-                break;
-            case 6: // Save
-                if (TamagotchiEngine::saveGame(*pet)) {
-                    action_message = "Game saved successfully! 💾";
-                } else {
-                    action_message = "Save failed!";
-                }
-                break;
-            case 7: // Load
-                {
-                    Tamagotchi* loaded = TamagotchiEngine::loadGame();
-                    if (loaded != nullptr) {
-                        if (pet) delete pet;
-                        pet = loaded;
-                        action_message = "Game loaded successfully! 📂";
-                    } else {
-                        action_message = "No save file found!";
-                    }
-                }
-                break;
-            case 8: // Quit
-                std::exit(0);
-                break;
-        }
-
-        if (!Utils::isAlive(*pet)) {
-            action_message = "Oh no! " + pet->name + " has passed away... RIP";
-            game_over = true;
-        }
-    }
-
+    
     Element render() {
+        if (message_timeout > 0) message_timeout--;
+        
         return vbox({
             renderHeader(),
-            text(" "),
-            renderPetStatus(),
-            text(" "),
+            text(""),
             hbox({
-                renderMenu() | flex,
-                text("  "),
-                renderLog() | flex,
-            }),
-            text(" "),
-            renderEncounter(),
-            renderAction(),
-            text(" "),
-        }) | bgcolor(Color::RGB(230, 240, 255));
+                renderStatus() | flex,
+                text(" "),
+                renderActions() | flex,
+            }) | flex,
+            text(""),
+            renderLogs() | flex,
+        }) | bgcolor(bg_gradient);
     }
 };
 
+// ═══════════════════════════════════════════════════════════════
+// MAIN
+// ═══════════════════════════════════════════════════════════════
+
 int main() {
-#ifdef _WIN32
-    SetConsoleOutputCP(CP_UTF8);
-    SetConsoleCP(CP_UTF8);
-#else
-    setlocale(LC_ALL, "");
-#endif
-
     std::srand(static_cast<unsigned>(std::time(nullptr)));
-
-    // Load or create pet
-    auto app = std::make_shared<TamagotchiApp>();
-
-    if (TamagotchiEngine::saveExists()) {
-        auto pet = TamagotchiEngine::loadGame();
-        if (pet) {
-            app->pet = pet;
-        } else {
-            app->pet = TamagotchiEngine::createTamagotchi("Tama");
+    
+    auto screen = ScreenInteractive::TerminalOutput();
+    
+    // Check if save file exists
+    bool has_save = saveFileExists();
+    int startup_choice = 0;  // 0 = new game, 1 = load game
+    std::string pet_name = "Tama";
+    
+    // STARTUP MENU
+    if (has_save) {
+        // Show choice menu
+        std::vector<std::string> options = {"NEW GAME", "LOAD GAME"};
+        int selected = 0;
+        
+        auto menu_renderer = Renderer([&] {
+            std::vector<Element> elements;
+            elements.push_back(
+                text(" ╔═══════════════════════════════════════╗ ") | color(primary_dark)
+            );
+            elements.push_back(
+                text(" ║     🐾 TAMAGOTCHI AERO 🐾           ║ ") | color(text_light) | bgcolor(primary_dark)
+            );
+            elements.push_back(
+                text(" ╚═══════════════════════════════════════╝ ") | color(primary_dark)
+            );
+            elements.push_back(text(""));
+            elements.push_back(
+                text(" Save file found! ") | bold | color(primary_dark) | center
+            );
+            elements.push_back(text(""));
+            elements.push_back(
+                text(" Select an option (use arrow keys or 1/2): ") | color(text_dark)
+            );
+            elements.push_back(text(""));
+            
+            for (int i = 0; i < (int)options.size(); i++) {
+                bool is_selected = (i == selected);
+                Color bg = is_selected ? primary_dark : bg_light_blue;
+                Color fg = is_selected ? text_light : text_dark;
+                elements.push_back(
+                    text(" " + std::to_string(i + 1) + ". " + options[i] + " ") | bold | bgcolor(bg) | color(fg) | center
+                );
+            }
+            
+            elements.push_back(text(""));
+            elements.push_back(
+                text(" Press ENTER or Space to confirm ") | color(accent_green) | center
+            );
+            
+            return vbox(elements) | border | color(primary_dark) | bgcolor(bg_gradient) | center;
+        });
+        
+        auto menu_component = CatchEvent(menu_renderer, [&](Event event) {
+            if (event == Event::Character('1')) {
+                selected = 0;
+                startup_choice = 0;
+                screen.ExitLoopClosure()();
+                return true;
+            } else if (event == Event::Character('2')) {
+                selected = 1;
+                startup_choice = 1;
+                screen.ExitLoopClosure()();
+                return true;
+            } else if (event == Event::ArrowUp) {
+                selected = (selected - 1 + (int)options.size()) % (int)options.size();
+                return true;
+            } else if (event == Event::ArrowDown) {
+                selected = (selected + 1) % (int)options.size();
+                return true;
+            } else if (event == Event::Return || event == Event::Character(' ')) {
+                startup_choice = selected;
+                screen.ExitLoopClosure()();
+                return true;
+            }
+            return false;
+        });
+        
+        screen.Loop(menu_component);
+    }
+    
+    TamagotchiApp app(pet_name);
+    
+    // Handle startup choice
+    if (startup_choice == 1 && has_save) {
+        // Load game
+        if (loadPet(app.pet)) {
+            app.setStatusMessage("Game loaded from tama_save.txt!");
         }
     } else {
-        app->pet = TamagotchiEngine::createTamagotchi("Tama");
+        // New game - show naming screen
+        std::string input_name = "Tama";
+        bool name_confirmed = false;
+        
+        auto naming_renderer = Renderer([&] {
+            std::vector<Element> elements;
+            elements.push_back(
+                text(" ╔═══════════════════════════════════════╗ ") | color(primary_dark)
+            );
+            elements.push_back(
+                text(" ║     🐾 TAMAGOTCHI AERO 🐾           ║ ") | color(text_light) | bgcolor(primary_dark)
+            );
+            elements.push_back(
+                text(" ╚═══════════════════════════════════════╝ ") | color(primary_dark)
+            );
+            elements.push_back(text(""));
+            elements.push_back(
+                text(" What would you like to name your Tamagotchi? ") | bold | color(primary_dark) | center
+            );
+            elements.push_back(text(""));
+            elements.push_back(
+                text(" > " + input_name + " ") | border | color(text_light) | bgcolor(primary_dark)
+            );
+            elements.push_back(text(""));
+            elements.push_back(
+                text(" (Max 15 characters, press ENTER to continue) ") | color(accent_green) | center
+            );
+            
+            return vbox(elements) | border | color(primary_dark) | bgcolor(bg_gradient) | center;
+        });
+        
+        auto naming_component = CatchEvent(naming_renderer, [&](Event event) {
+            if (event.is_character()) {
+                char c = event.character()[0];
+                if (c >= 32 && c <= 126 && input_name.length() < 15) {
+                    input_name += c;
+                    return true;
+                }
+            } else if (event == Event::Backspace && !input_name.empty()) {
+                input_name.pop_back();
+                return true;
+            } else if (event == Event::Return) {
+                name_confirmed = true;
+                screen.ExitLoopClosure()();
+                return true;
+            }
+            return false;
+        });
+        
+        screen.Loop(naming_component);
+        
+        app.pet.name = input_name.empty() ? "Tama" : input_name;
+        app.setStatusMessage("Welcome " + app.pet.name + "! Let's begin!");
     }
-
-    // Create component
-    auto menu_container = Container::Vertical({
-        Renderer([app]() { return app->renderMenu(); }),
+    
+    // MAIN GAME LOOP
+    std::function<void()> quit = screen.ExitLoopClosure();
+    
+    auto renderer = Renderer([&] {
+        return app.render();
     });
-
-    auto main_component = Container::Vertical({
-        Renderer([app]() { return app->render(); }),
-    });
-
-    int menu_index = 0;
-    std::vector<std::string> choices = {
-        "Feed", "Play", "Sleep", "Medicine", "Pass Time", "View Log", "Save", "Load", "Quit"
-    };
-
-    auto menu = Menu(&choices, &menu_index);
-
-    auto component = Renderer([app, &menu_index]() {
-        return app->render();
-    });
-
-    auto handle_input = CatchEvent(component, [app, &menu_index](Event event) {
-        if (event == Event::Character('q')) {
-            if (app->pet) TamagotchiEngine::saveGame(*app->pet);
-            return true;
-        }
-        if (event == Event::ArrowUp) {
-            menu_index = (menu_index - 1 + 9) % 9;
-            return true;
-        }
-        if (event == Event::ArrowDown) {
-            menu_index = (menu_index + 1) % 9;
-            return true;
-        }
-        if (event == Event::Return) {
-            app->executeMenuAction(menu_index);
-            return true;
+    
+    auto handle_input = [&](Event event) {
+        if (event == Event::Character('1')) {
+            feedPet(app.pet);
+        } else if (event == Event::Character('2')) {
+            playWithPet(app.pet);
+        } else if (event == Event::Character('3')) {
+            sleepPet(app.pet);
+        } else if (event == Event::Character('4')) {
+            healPet(app.pet);
+        } else if (event == Event::Character('5')) {
+            passTime(app.pet);
+        } else if (event == Event::Character('6')) {
+            if (savePet(app.pet)) {
+                app.setStatusMessage("Game saved to tama_save.txt");
+            } else {
+                app.setStatusMessage("Failed to save game!");
+            }
+        } else if (event == Event::Character('7')) {
+            Tamagotchi loaded_pet;
+            if (loadPet(loaded_pet)) {
+                app.pet = loaded_pet;
+                app.setStatusMessage("Game loaded from tama_save.txt!");
+            } else {
+                app.setStatusMessage("Failed to load game!");
+            }
+        } else if (event == Event::Character('8')) {
+            quit();
+        } else if (event == Event::Character('q')) {
+            quit();
         }
         return false;
-    });
-
-    auto screen = ScreenInteractive::TerminalOutput();
-    screen.Loop(handle_input);
-
-    if (app->pet) {
-        TamagotchiEngine::saveGame(*app->pet);
-    }
-
+    };
+    
+    auto component_with_input = CatchEvent(renderer, handle_input);
+    
+    screen.Loop(component_with_input);
+    
     return 0;
 }
