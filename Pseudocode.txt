@@ -1,0 +1,130 @@
+START PROGRAM
+
+    // 1. Persiapan Awal
+    INITIALIZE RandomNumberGenerator
+
+    pet = NULL
+
+    // 2. Cek Save File
+    IF FileExists("tamagotchi.sav") THEN
+        PRINT "Save file ditemukan. Load game? (y/n): "
+        INPUT answer
+        IF answer == 'y' THEN
+            pet = LoadGameFromFile("tamagotchi.sav")
+        END IF
+    END IF
+
+    // 3. Buat Tamagotchi Baru (Jika tidak di-load)
+    IF pet == NULL THEN
+        PRINT "Masukkan nama Tamagotchi: "
+        INPUT petName
+        IF petName is empty THEN
+            petName = "Tama"
+        END IF
+        pet = CreateNewTamagotchi(petName)
+    END IF
+
+    PRINT "Selamat datang!"
+    DisplayStatus(pet)
+
+    choice = -1
+
+    // 4. Game Loop (Siklus Utama)
+    WHILE choice != 0 AND pet.alive == TRUE DO
+        
+        PRINT MenuOptions (1: Feed, 2: Play, 3: Sleep, 4: Heal, 5: Status, 6: Log, 7: Pass Time, 8: Save, 9: Load, 0: Quit)
+        INPUT choice
+
+        SWITCH choice DO
+            CASE 1 (Feed):
+                pet.hunger = pet.hunger - 30
+                pet.happiness = pet.happiness + 10
+                pet.energy = pet.energy + 5
+                AddLog("FEED")
+                
+            CASE 2 (Play):
+                IF pet.energy >= 20 THEN
+                    pet.happiness = pet.happiness + 25
+                    pet.energy = pet.energy - 20
+                    pet.hunger = pet.hunger + 15
+                    AddLog("PLAY")
+                ELSE
+                    PRINT "Terlalu lelah untuk bermain!"
+                END IF
+                
+            CASE 3 (Sleep):
+                pet.energy = pet.energy + 40
+                pet.hunger = pet.hunger + 10
+                pet.health = pet.health + 5
+                AddLog("SLEEP")
+                
+            CASE 4 (Heal):
+                pet.health = pet.health + 30
+                pet.energy = pet.energy + 10
+                AddLog("HEAL")
+                
+            CASE 5 (Status):
+                DisplayStatus(pet)
+                
+            CASE 6 (Log):
+                DisplayRecentLogs(pet)
+                
+            CASE 7 (Pass Time):
+                pet.age = pet.age + 1
+                pet.hunger = pet.hunger + 10
+                pet.happiness = pet.happiness - 5
+                pet.energy = pet.energy - 8
+                
+                // Cek penalti kesehatan jika kelaparan / sedih
+                IF pet.hunger >= 80 THEN pet.health = pet.health - 15
+                IF pet.happiness <= 20 THEN pet.health = pet.health - 5
+                
+                AddLog("TIME PASSED")
+                
+                // Memicu Random Event (Peluang 60%)
+                IF Random(0 to 100) < 60 THEN
+                    event = GetRandomEvent()
+                    PRINT event.description
+                    pet.hunger = pet.hunger + event.hungerDelta
+                    pet.happiness = pet.happiness + event.happinessDelta
+                    pet.energy = pet.energy + event.energyDelta
+                    pet.health = pet.health + event.healthDelta
+                    AddLog("EVENT")
+                END IF
+                DisplayStatus(pet)
+
+            CASE 8 (Save):
+                SaveGameToFile(pet, "tamagotchi.sav")
+                
+            CASE 9 (Load):
+                newPet = LoadGameFromFile("tamagotchi.sav")
+                IF newPet != NULL THEN
+                    pet = newPet
+                    DisplayStatus(pet)
+                END IF
+                
+            CASE 0 (Quit):
+                PRINT "Goodbye!"
+                
+            DEFAULT:
+                PRINT "Pilihan tidak valid."
+        END SWITCH
+
+        // 5. Pengecekan Batas Status (Clamp) & Kematian
+        ClampAllStatsBetween0And100(pet)
+
+        IF pet.hunger >= 100 OR pet.health <= 0 THEN
+            pet.alive = FALSE
+            AddLog("DIED")
+            PRINT "Tamagotchi telah mati..."
+            PRINT "Bertahan hidup selama " + pet.age + " hari."
+            DisplayRecentLogs(pet)
+        END IF
+
+    END WHILE
+
+    // 6. Terminasi
+    FreeMemory(pet)
+    PRINT "Program selesai."
+
+END PROGRAM
