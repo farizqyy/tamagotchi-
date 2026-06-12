@@ -392,7 +392,7 @@ Element achievementDisplay(const PetStatistics::Statistics& stats) {
     
     for (const auto& ach : stats.achievements) {
         std::string icon = ach.unlocked ? "✓" : "✗";
-        Color color = ach.unlocked ? accent_green : text_dark;
+        Color achColor = ach.unlocked ? accent_green : text_dark;
         int barWidth = 15;
         int filled = (ach.progress * barWidth) / ach.required;
         
@@ -406,10 +406,10 @@ Element achievementDisplay(const PetStatistics::Statistics& stats) {
         
         elements.push_back(
             hbox({
-                text(icon + " " + ach.name) | flex,
-                text(bar),
-                text(" " + progress_text)
-            }) | color(color)
+                text(icon + " " + ach.name) | color(achColor) | flex,
+                text(bar) | color(achColor),
+                text(" " + progress_text) | color(achColor)
+            })
         );
     }
     
