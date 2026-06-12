@@ -7,6 +7,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cmath>
+#include <algorithm>
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/component_base.hpp"
@@ -50,6 +51,114 @@ struct Encounter {
     int energy_delta;
     int health_delta;
 };
+
+// ═══════════════════════════════════════════════════════════════
+// ACHIEVEMENT & STATISTICS SYSTEM (Namespace with missing features)
+// ═══════════════════════════════════════════════════════════════
+
+namespace PetStatistics {
+    // Exception class for invalid achievement operations
+    class AchievementException : public std::exception {
+        std::string message;
+    public:
+        AchievementException(const std::string& msg) : message(msg) {}
+        const char* what() const noexcept override { return message.c_str(); }
+    };
+
+    struct Achievement {
+        std::string name;
+        std::string description;
+        int progress;
+        int required;
+        bool unlocked;
+    };
+
+    struct Statistics {
+        std::vector<Achievement> achievements;
+        int totalFed = 0;
+        int totalPlayed = 0;
+        int totalHealed = 0;
+        int maxAge = 0;
+        std::vector<std::string> events_encountered;
+    };
+
+    // Function Overloading Example 1: Update progress by name
+    void updateAchievement(Statistics& stats, const std::string& achievement_name, int increment) {
+        try {
+            auto it = std::find_if(stats.achievements.begin(), stats.achievements.end(),
+                [&achievement_name](const Achievement& a) { return a.name == achievement_name; });
+            
+            if (it == stats.achievements.end()) {
+                throw AchievementException("Achievement '" + achievement_name + "' not found!");
+            }
+            
+            it->progress += increment;
+            if (it->progress >= it->required && !it->unlocked) {
+                it->unlocked = true;
+            }
+        } catch (const AchievementException& e) {
+            std::cerr << "Achievement Error: " << e.what() << std::endl;
+        }
+    }
+
+    // Function Overloading Example 2: Update progress by index
+    void updateAchievement(Statistics& stats, int achievement_index, int increment) {
+        try {
+            if (achievement_index < 0 || achievement_index >= (int)stats.achievements.size()) {
+                throw AchievementException("Invalid achievement index: " + std::to_string(achievement_index));
+            }
+            
+            stats.achievements[achievement_index].progress += increment;
+            if (stats.achievements[achievement_index].progress >= stats.achievements[achievement_index].required) {
+                stats.achievements[achievement_index].unlocked = true;
+            }
+        } catch (const AchievementException& e) {
+            std::cerr << "Achievement Error: " << e.what() << std::endl;
+        }
+    }
+
+    // Initialize achievements
+    void initializeAchievements(Statistics& stats) {
+        stats.achievements = {
+            {"First Meal", "Feed your pet 5 times", 0, 5, false},
+            {"Playtime Master", "Play with pet 10 times", 0, 10, false},
+            {"Survivor", "Keep pet alive for 20 days", 0, 20, false},
+            {"Health Guardian", "Heal pet 8 times", 0, 8, false},
+            {"Event Collector", "Encounter 15 unique events", 0, 15, false}
+        };
+    }
+
+    // Count unlocked achievements (STL Algorithm: count_if)
+    int countUnlocked(const Statistics& stats) {
+        return std::count_if(stats.achievements.begin(), stats.achievements.end(),
+            [](const Achievement& a) { return a.unlocked; });
+    }
+
+    // Sort achievements by progress (STL Algorithm: sort with lambda)
+    void sortByProgress(Statistics& stats) {
+        std::sort(stats.achievements.begin(), stats.achievements.end(),
+            [](const Achievement& a, const Achievement& b) {
+                return (float)a.progress / a.required > (float)b.progress / b.required;
+            });
+    }
+
+    // Find achievement by name (STL Algorithm: find_if)
+    Achievement* findAchievementByName(Statistics& stats, const std::string& name) {
+        auto it = std::find_if(stats.achievements.begin(), stats.achievements.end(),
+            [&name](const Achievement& a) { return a.name == name; });
+        
+        if (it != stats.achievements.end()) {
+            return &(*it);
+        }
+        return nullptr;
+    }
+
+    // Count total achievements (STL Algorithm: count)
+    int countTotalAchievements(const Statistics& stats) {
+        return std::count_if(stats.achievements.begin(), stats.achievements.end(),
+            [](const Achievement& a) { return a.required > 0; });
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════
 // UTILITIES
@@ -268,19 +377,62 @@ Element actionButton(const std::string& label, const std::string& key) {
     });
 }
 
+// Achievement display UI
+Element achievementDisplay(const PetStatistics::Statistics& stats) {
+    std::vector<Element> elements;
+    
+    int unlocked = PetStatistics::countUnlocked(stats);
+    int total = PetStatistics::countTotalAchievements(stats);
+    
+    elements.push_back(
+        text("🏆 ACHIEVEMENTS [" + std::to_string(unlocked) + "/" + std::to_string(total) + "]") 
+        | bold | center | color(accent_orange)
+    );
+    elements.push_back(separator());
+    
+    for (const auto& ach : stats.achievements) {
+        std::string icon = ach.unlocked ? "✓" : "✗";
+        Color color = ach.unlocked ? accent_green : text_dark;
+        int barWidth = 15;
+        int filled = (ach.progress * barWidth) / ach.required;
+        
+        std::string bar = "[";
+        for (int i = 0; i < barWidth; i++) {
+            bar += (i < filled) ? "█" : "░";
+        }
+        bar += "]";
+        
+        elements.push_back(
+            hbox({
+                text(icon + " ") | color(color),
+                text(ach.name) | size(WIDTH, EQUAL, 18),
+                text(bar) | size(WIDTH, EQUAL, 17),
+                text(std::to_string(ach.progress) + "/" + std::to_string(ach.required)) | size(WIDTH, EQUAL, 6)
+            }) | color(color)
+        );
+    }
+    
+    return vbox(elements);
+}
+
 // ═══════════════════════════════════════════════════════════════
 // TAMAGOTCHI ENGINE
 // ═══════════════════════════════════════════════════════════════
 
-void feedPet(Tamagotchi& t) {
+void feedPet(Tamagotchi& t, PetStatistics::Statistics* stats = nullptr) {
     if (!t.alive) return;
     t.hunger = clamp(t.hunger - 30, 0, 100);
     t.happiness = clamp(t.happiness + 10, 0, 100);
     t.energy = clamp(t.energy + 5, 0, 100);
     addLog(t, "FEED", "Nom nom! 😋");
+    
+    if (stats) {
+        stats->totalFed++;
+        PetStatistics::updateAchievement(*stats, "First Meal", 1);
+    }
 }
 
-void playWithPet(Tamagotchi& t) {
+void playWithPet(Tamagotchi& t, PetStatistics::Statistics* stats = nullptr) {
     if (!t.alive) return;
     if (t.energy < 20) {
         addLog(t, "PLAY", "Too tired... 😴");
@@ -290,6 +442,11 @@ void playWithPet(Tamagotchi& t) {
     t.energy = clamp(t.energy - 20, 0, 100);
     t.hunger = clamp(t.hunger + 15, 0, 100);
     addLog(t, "PLAY", "Wheee! 🎮");
+    
+    if (stats) {
+        stats->totalPlayed++;
+        PetStatistics::updateAchievement(*stats, "Playtime Master", 1);
+    }
 }
 
 void sleepPet(Tamagotchi& t) {
@@ -300,14 +457,19 @@ void sleepPet(Tamagotchi& t) {
     addLog(t, "SLEEP", "Zzzzz... 😴");
 }
 
-void healPet(Tamagotchi& t) {
+void healPet(Tamagotchi& t, PetStatistics::Statistics* stats = nullptr) {
     if (!t.alive) return;
     t.health = clamp(t.health + 30, 0, 100);
     t.energy = clamp(t.energy + 10, 0, 100);
     addLog(t, "HEAL", "Feeling better! 💊");
+    
+    if (stats) {
+        stats->totalHealed++;
+        PetStatistics::updateAchievement(*stats, "Health Guardian", 1);
+    }
 }
 
-void passTime(Tamagotchi& t) {
+void passTime(Tamagotchi& t, PetStatistics::Statistics* stats = nullptr) {
     if (!t.alive) return;
     
     // Age the pet
@@ -324,7 +486,14 @@ void passTime(Tamagotchi& t) {
     if (t.hunger >= 100 || t.health <= 0) {
         t.alive = false;
         addLog(t, "DIED", "Rest in peace... 💀");
+        if (stats) stats->maxAge = t.age;
         return;
+    }
+    
+    // Update survivor achievement
+    if (stats) {
+        PetStatistics::updateAchievement(*stats, "Survivor", 1);
+        stats->maxAge = t.age;
     }
     
     // Random encounter (60% chance)
@@ -339,6 +508,16 @@ void passTime(Tamagotchi& t) {
         // Log with detailed encounter description
         std::string detail = "Day " + std::to_string(t.age) + " - " + enc.description;
         addLog(t, "PASS TIME", detail);
+        
+        // Track unique events
+        if (stats) {
+            auto it = std::find(stats->events_encountered.begin(), 
+                              stats->events_encountered.end(), enc.title);
+            if (it == stats->events_encountered.end()) {
+                stats->events_encountered.push_back(enc.title);
+                PetStatistics::updateAchievement(*stats, "Event Collector", 1);
+            }
+        }
     } else {
         addLog(t, "PASS TIME", "Day " + std::to_string(t.age) + " passed without incident");
     }
@@ -351,8 +530,10 @@ void passTime(Tamagotchi& t) {
 class TamagotchiApp {
 public:
     Tamagotchi pet;
+    PetStatistics::Statistics stats;
     std::string status_message;
     int message_timeout = 0;
+    bool show_achievements = false;
     
     TamagotchiApp(const std::string& name) : pet() {
         pet.name = name;
@@ -364,6 +545,7 @@ public:
         pet.alive = true;
         status_message = "";
         addLog(pet, "BORN", "Welcome to the world!");
+        PetStatistics::initializeAchievements(stats);
     }
     
     Element renderHeader() {
@@ -380,7 +562,7 @@ public:
     
     Element renderActions() {
         return vbox({
-            text(" ACTIONS (Press 1-8) ") | bold | color(text_light) | bgcolor(primary_dark),
+            text(" ACTIONS (Press 1-9) ") | bold | color(text_light) | bgcolor(primary_dark),
             text(""),
             hbox({
                 actionButton("🍽️  FEED", "1") | flex,
@@ -403,7 +585,13 @@ public:
             hbox({
                 actionButton("📂 LOAD", "7") | flex,
                 text(" "),
+                actionButton("🏆 ACHIEVEMENTS", "9") | flex,
+            }),
+            text(""),
+            hbox({
                 actionButton("❌ QUIT", "8") | flex,
+                text(" "),
+                text("") | flex,
             }),
         }) | border | color(primary_dark) | bgcolor(bg_light_blue);
     }
@@ -443,6 +631,16 @@ public:
     
     Element render() {
         if (message_timeout > 0) message_timeout--;
+        
+        if (show_achievements) {
+            return vbox({
+                renderHeader(),
+                text(""),
+                aeroGradientBox("ACHIEVEMENTS", achievementDisplay(stats)) | flex,
+                text(""),
+                text(" Press 'A' to return to game ") | center | color(accent_green),
+            }) | bgcolor(bg_gradient);
+        }
         
         return vbox({
             renderHeader(),
@@ -617,15 +815,15 @@ int main() {
     
     auto handle_input = [&](Event event) {
         if (event == Event::Character('1')) {
-            feedPet(app.pet);
+            feedPet(app.pet, &app.stats);
         } else if (event == Event::Character('2')) {
-            playWithPet(app.pet);
+            playWithPet(app.pet, &app.stats);
         } else if (event == Event::Character('3')) {
             sleepPet(app.pet);
         } else if (event == Event::Character('4')) {
-            healPet(app.pet);
+            healPet(app.pet, &app.stats);
         } else if (event == Event::Character('5')) {
-            passTime(app.pet);
+            passTime(app.pet, &app.stats);
         } else if (event == Event::Character('6')) {
             if (savePet(app.pet)) {
                 app.setStatusMessage("Game saved to tama_save.txt");
@@ -640,6 +838,10 @@ int main() {
             } else {
                 app.setStatusMessage("Failed to load game!");
             }
+        } else if (event == Event::Character('9')) {
+            app.show_achievements = !app.show_achievements;
+        } else if (event == Event::Character('a') || event == Event::Character('A')) {
+            app.show_achievements = false;
         } else if (event == Event::Character('8')) {
             quit();
         } else if (event == Event::Character('q')) {
