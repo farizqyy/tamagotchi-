@@ -402,12 +402,13 @@ Element achievementDisplay(const PetStatistics::Statistics& stats) {
         }
         bar += "]";
         
+        std::string progress_text = std::to_string(ach.progress) + "/" + std::to_string(ach.required);
+        
         elements.push_back(
             hbox({
-                text(icon + " ") | color(color),
-                text(ach.name) | size(WIDTH, EQUAL, 18),
-                text(bar) | size(WIDTH, EQUAL, 17),
-                text(std::to_string(ach.progress) + "/" + std::to_string(ach.required)) | size(WIDTH, EQUAL, 6)
+                text(icon + " " + ach.name) | flex,
+                text(bar),
+                text(" " + progress_text)
             }) | color(color)
         );
     }
