@@ -1,0 +1,23 @@
+# Ignore the entire CMake build directory
+build/
+.cache/
+
+# Ignore compiled executables and libraries
+*.cpp
+*.o
+*.a
+*.so
+*.out
+my_program
+
+# Ignore IDE specific files (e.g., VS Code or CLion)
+.vscode/
+.idea/
+
+# Ignore OS-generated files
+.DS_Store
+Thumbs.db
+
+# Important
+!tamagotchi-cplt-2.cpp
+!tamagotchi.cpp

@@ -91,6 +91,12 @@
 #include <cmath>
 #include <algorithm>
 
+// set terminal to UTF-8 mode for cross-platform compatibility
+#ifdef _WIN32
+    #include <windows.h>
+#endif
+#include <locale>
+
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/component_base.hpp"
 #include "ftxui/component/screen_interactive.hpp"
@@ -634,7 +640,7 @@ public:
     Element renderHeader() {
         return vbox({
             text(" ╔═══════════════════════════════════════╗ ") | color(primary_dark),
-            text(" ║     🐾 TAMAGOTCHI AERO 🐾           ║ ") | color(text_light) | bgcolor(primary_dark),
+            text(" ║            🐾 TAMAGOTCHI 🐾           ║ ") | color(text_light) | bgcolor(primary_dark),
             text(" ╚═══════════════════════════════════════╝ ") | color(primary_dark),
         });
     }
@@ -758,6 +764,15 @@ public:
 */
 
 int main() {
+
+    // set UTF8 di windows
+    #ifdef _WIN32
+        SetConsoleOutputCP(CP_UTF8);
+        SetConsoleCP(CP_UTF8);
+    #else
+        setlocale(LC_ALL, "");
+    #endif
+    
     std::srand(static_cast<unsigned>(std::time(nullptr)));
     
     auto screen = ScreenInteractive::TerminalOutput();
@@ -779,7 +794,7 @@ int main() {
                 text(" ╔═══════════════════════════════════════╗ ") | color(primary_dark)
             );
             elements.push_back(
-                text(" ║     🐾 TAMAGOTCHI AERO 🐾           ║ ") | color(text_light) | bgcolor(primary_dark)
+                text(" ║            🐾 TAMAGOTCHI 🐾           ║ ") | color(text_light) | bgcolor(primary_dark)
             );
             elements.push_back(
                 text(" ╚═══════════════════════════════════════╝ ") | color(primary_dark)
@@ -858,7 +873,7 @@ int main() {
                 text(" ╔═══════════════════════════════════════╗ ") | color(primary_dark)
             );
             elements.push_back(
-                text(" ║     🐾 TAMAGOTCHI AERO 🐾           ║ ") | color(text_light) | bgcolor(primary_dark)
+                text(" ║            🐾 TAMAGOTCHI 🐾           ║ ") | color(text_light) | bgcolor(primary_dark)
             );
             elements.push_back(
                 text(" ╚═══════════════════════════════════════╝ ") | color(primary_dark)

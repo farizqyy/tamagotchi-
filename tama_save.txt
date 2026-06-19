@@ -1,54 +1,56 @@
 agus
-0 100 100 100
-64 1
-50
-00:56:21|PASS TIME|Day 49 - Tamagotchi fought a big scary bug 🐛
-00:56:21|FEED|Nom nom! 😋
-00:56:21|PLAY|Wheee! 🎮
-00:56:21|SLEEP|Zzzzz... 😴
-00:56:22|FEED|Nom nom! 😋
-00:56:22|SLEEP|Zzzzz... 😴
-00:56:22|PLAY|Wheee! 🎮
-00:56:22|FEED|Nom nom! 😋
-00:56:23|HEAL|Feeling better! 💊
-00:56:23|FEED|Nom nom! 😋
-00:56:23|PLAY|Wheee! 🎮
-00:56:23|FEED|Nom nom! 😋
-00:56:23|SLEEP|Zzzzz... 😴
-00:56:23|PASS TIME|Day 50 - Tamagotchi watched beautiful meteor shower ⭐
-00:56:24|PASS TIME|Day 51 - Tamagotchi got caught in the rain and got wet 🌧️
-00:56:24|PASS TIME|Day 52 - Tamagotchi discovered a fresh juicy fruit 🍎
-00:56:24|FEED|Nom nom! 😋
-00:56:24|PLAY|Wheee! 🎮
-00:56:24|SLEEP|Zzzzz... 😴
-00:56:25|PASS TIME|Day 53 - Tamagotchi danced around with joy 💃
-00:56:25|PASS TIME|Day 54 passed without incident
-00:56:25|FEED|Nom nom! 😋
-00:56:25|SLEEP|Zzzzz... 😴
-00:56:26|FEED|Nom nom! 😋
-00:56:26|PASS TIME|Day 55 passed without incident
-00:56:26|PASS TIME|Day 56 passed without incident
-00:56:27|PASS TIME|Day 57 - Lucky! Tamagotchi found some coins 💰
-00:56:27|FEED|Nom nom! 😋
-00:56:27|SLEEP|Zzzzz... 😴
-00:56:27|PASS TIME|Day 58 - Tamagotchi danced around with joy 💃
-00:56:27|PASS TIME|Day 59 - Tamagotchi watched beautiful meteor shower ⭐
-00:56:28|PASS TIME|Day 60 - Tamagotchi found an old toy to play with 🧸
-00:56:28|FEED|Nom nom! 😋
-00:56:28|SLEEP|Zzzzz... 😴
-00:56:28|PASS TIME|Day 61 - Tamagotchi fought a big scary bug 🐛
-00:56:29|PASS TIME|Day 62 - Tamagotchi ate too much and felt bloated 🤢
-00:56:29|FEED|Nom nom! 😋
-00:56:29|SLEEP|Zzzzz... 😴
-00:56:29|FEED|Nom nom! 😋
-00:56:29|PLAY|Wheee! 🎮
-00:56:30|SLEEP|Zzzzz... 😴
-00:56:30|FEED|Nom nom! 😋
-00:56:30|HEAL|Feeling better! 💊
-00:56:30|FEED|Nom nom! 😋
-00:56:30|PASS TIME|Day 63 - Tamagotchi made a new friend and played together 👫
-00:56:31|PASS TIME|Day 64 - Tamagotchi watched beautiful meteor shower ⭐
-00:56:31|FEED|Nom nom! 😋
-00:56:31|PLAY|Wheee! 🎮
-00:56:31|SLEEP|Zzzzz... 😴
-00:56:32|FEED|Nom nom! 😋
+65 15 8 35
+102 1
+52
+19:04:34|PASS TIME|Day 79 passed without incident
+19:04:34|PASS TIME|Day 80 passed without incident
+19:04:35|PASS TIME|Day 81 - Tamagotchi got caught in the rain and got wet 🌧️
+19:04:35|FEED|Nom nom! 😋
+19:04:35|PASS TIME|Day 82 - Tamagotchi got caught in the rain and got wet 🌧️
+19:04:36|FEED|Nom nom! 😋
+19:04:36|SLEEP|Zzzzz... 😴
+19:04:37|PLAY|Wheee! 🎮
+19:04:37|SLEEP|Zzzzz... 😴
+19:04:38|FEED|Nom nom! 😋
+19:04:39|FEED|Nom nom! 😋
+19:04:39|HEAL|Feeling better! 💊
+19:04:43|PASS TIME|Day 83 - Tamagotchi found some tasty leftovers 🍖
+19:04:43|PASS TIME|Day 84 - Tamagotchi found some tasty leftovers 🍖
+19:04:43|PASS TIME|Day 85 - Lucky! Tamagotchi found some coins 💰
+19:04:45|PASS TIME|Day 86 - Tamagotchi ate too much and felt bloated 🤢
+19:04:46|PASS TIME|Day 87 - Tamagotchi ate too much and felt bloated 🤢
+19:04:47|PASS TIME|Day 88 - Tamagotchi had a terrible nightmare 😰
+19:05:09|FEED|Nom nom! 😋
+19:05:09|FEED|Nom nom! 😋
+19:05:09|FEED|Nom nom! 😋
+19:05:10|FEED|Nom nom! 😋
+19:05:11|PLAY|Wheee! 🎮
+19:05:11|SLEEP|Zzzzz... 😴
+19:05:11|SLEEP|Zzzzz... 😴
+19:05:11|FEED|Nom nom! 😋
+19:05:11|SLEEP|Zzzzz... 😴
+19:05:12|SLEEP|Zzzzz... 😴
+19:05:12|HEAL|Feeling better! 💊
+19:05:13|FEED|Nom nom! 😋
+19:05:14|PASS TIME|Day 89 - Tamagotchi fell asleep and took a nap 😴
+19:05:14|PASS TIME|Day 90 passed without incident
+19:05:15|FEED|Nom nom! 😋
+19:05:16|PASS TIME|Day 91 passed without incident
+19:05:16|PASS TIME|Day 92 - Tamagotchi fell asleep and took a nap 😴
+19:05:17|PASS TIME|Day 93 passed without incident
+19:05:17|PASS TIME|Day 94 - Tamagotchi found an old toy to play with 🧸
+19:05:17|PASS TIME|Day 95 - Tamagotchi fought a big scary bug 🐛
+19:05:18|PASS TIME|Day 96 - Tamagotchi discovered a fresh juicy fruit 🍎
+19:05:19|SLEEP|Zzzzz... 😴
+19:05:19|FEED|Nom nom! 😋
+19:05:19|PASS TIME|Day 97 - Tamagotchi had a terrible nightmare 😰
+19:05:20|PASS TIME|Day 98 - Tamagotchi found some tasty leftovers 🍖
+19:05:20|SLEEP|Zzzzz... 😴
+19:05:21|FEED|Nom nom! 😋
+19:05:21|SLEEP|Zzzzz... 😴
+19:05:21|PLAY|Wheee! 🎮
+19:05:22|PASS TIME|Day 99 - Tamagotchi fought a big scary bug 🐛
+19:05:22|PASS TIME|Day 100 passed without incident
+19:05:24|PASS TIME|Day 101 - Tamagotchi had a terrible nightmare 😰
+19:05:25|FEED|Nom nom! 😋
+19:05:25|PASS TIME|Day 102 - The ground shook! Tamagotchi got startled 😱
