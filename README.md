@@ -27,22 +27,17 @@ pet
 
 ## Getting started
 
-### Prerequisites
+### build
 
-MinGW, any terminal
-
-### Install
-
-grab the 
-[tamagochi](https://github.com/farizqyy/tamagotchi/blob/main/tamagotchi.cpp)
-file
+clonethe repo
 
 cd into the file
 
 run
 
 ```sh
-g++ tamagotchi.cpp -o tamagotchi
+cd build
+cmake --build .
 ```
 
 note that some terminal might not be supported
