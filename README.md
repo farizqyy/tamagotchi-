@@ -37,6 +37,12 @@ run
 
 ```sh
 mkdir build && cd build
+cmake ..
+```
+
+### compile the program
+
+```sh
 cmake --build .
 ```
 
