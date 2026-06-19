@@ -8,6 +8,7 @@ build/
 *.a
 *.so
 *.out
+*.sav
 my_program
 
 # Ignore IDE specific files (e.g., VS Code or CLion)
