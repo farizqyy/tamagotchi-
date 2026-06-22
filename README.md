@@ -30,6 +30,9 @@ pet
 
 ## Getting started
 
+Requirement:
+[cmake](https://cmake.org/download/) installed
+
 ### build
 
 clonethe repo
