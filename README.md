@@ -4,7 +4,7 @@ tamagochi app or something
 
 [Pseudocode](https://github.com/farizqyy/tamagotchi/blob/main/Pseudocode.txt)
 
-[Documentation]([https://github.com/farizqyy/tamagotchi/blob/main/Flowchart_Tamagotchi.png](https://github.com/farizqyy/tamagotchi-/blob/main/DOCUMENTATION.md))
+[Documentation](https://github.com/farizqyy/tamagotchi-/blob/main/DOCUMENTATION.md)
 
 [Flowchart:](https://github.com/farizqyy/tamagotchi/blob/main/Flowchart_Tamagotchi.png)
 
