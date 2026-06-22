@@ -42,7 +42,8 @@ cd into the file
 run
 
 ```sh
-mkdir build && cd build
+mkdir build
+cd build
 cmake ..
 ```
 
