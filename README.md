@@ -6,6 +6,8 @@ tamagochi app or something
 
 [Flowchart:](https://github.com/farizqyy/tamagotchi/blob/main/Flowchart_Tamagotchi.png)
 
+[Documentation:]([https://github.com/farizqyy/tamagotchi/blob/main/Flowchart_Tamagotchi.png](https://github.com/farizqyy/tamagotchi-/blob/main/DOCUMENTATION.md))
+
 <div align="center">
   <kbd>
     <img src="Flowchart_Tamagotchi.png" />
