@@ -106,9 +106,7 @@
 
 using namespace ftxui;
 
-// ═══════════════════════════════════════════════════════════════
 // STRUCTS
-// ═══════════════════════════════════════════════════════════════
 
 struct StatusLog {
     std::string timestamp;
@@ -127,9 +125,7 @@ struct Tamagotchi {
     std::vector<StatusLog> logs;
 };
 
-// ═══════════════════════════════════════════════════════════════
 // RANDOM ENCOUNTER DEFINITION
-// ═══════════════════════════════════════════════════════════════
 
 struct Encounter {
     std::string title;          // Short name
@@ -140,9 +136,7 @@ struct Encounter {
     int health_delta;
 };
 
-// ═══════════════════════════════════════════════════════════════
 // ACHIEVEMENT & STATISTICS SYSTEM (Namespace with missing features)
-// ═══════════════════════════════════════════════════════════════
 
 namespace PetStatistics {
     // Exception class for invalid achievement operations
@@ -248,9 +242,7 @@ namespace PetStatistics {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
 // UTILITIES
-// ═══════════════════════════════════════════════════════════════
 
 template<typename T>
 inline T clamp(T value, T minVal, T maxVal) {
@@ -277,9 +269,7 @@ void addLog(Tamagotchi& t, const std::string& action, const std::string& detail)
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
 // ENCOUNTER TABLE
-// ═══════════════════════════════════════════════════════════════
 
 const Encounter ENCOUNTER_TABLE[] = {
     // Neutral/Good events
@@ -310,9 +300,7 @@ const Encounter ENCOUNTER_TABLE[] = {
 const int ENCOUNTER_COUNT = sizeof(ENCOUNTER_TABLE) / sizeof(ENCOUNTER_TABLE[0]);
 const int ENCOUNTER_CHANCE = 60;  // 60% chance each day
 
-// ═══════════════════════════════════════════════════════════════
 // IMPROVED FRUTIGER AERO COLORS (Better Contrast)
-// ═══════════════════════════════════════════════════════════════
 
 // Background: Light gradient
 Color bg_light_blue = Color::RGB(200, 230, 250);      // Very light blue
@@ -332,9 +320,7 @@ Color accent_red = Color::RGB(231, 76, 60);            // Darker red
 Color text_dark = Color::RGB(44, 62, 80);              // Very dark gray
 Color text_light = Color::RGB(255, 255, 255);          // White
 
-// ═══════════════════════════════════════════════════════════════
 // SAVE/LOAD SUPPORT
-// ═══════════════════════════════════════════════════════════════
 
 bool savePet(const Tamagotchi& pet, const std::string& filename = "tama_save.txt") {
     std::ofstream file(filename);
@@ -394,9 +380,7 @@ bool saveFileExists(const std::string& filename = "tama_save.txt") {
     return file.good();
 }
 
-// ═══════════════════════════════════════════════════════════════
 // UI COMPONENTS
-// ═══════════════════════════════════════════════════════════════
 
 Element aeroGradientBox(const std::string& title, Element content) {
     return window(
@@ -504,9 +488,7 @@ Element achievementDisplay(const PetStatistics::Statistics& stats) {
     return vbox(elements);
 }
 
-// ═══════════════════════════════════════════════════════════════
 // TAMAGOTCHI ENGINE
-// ═══════════════════════════════════════════════════════════════
 
 void feedPet(Tamagotchi& t, PetStatistics::Statistics* stats = nullptr) {
     if (!t.alive) return;
@@ -612,9 +594,7 @@ void passTime(Tamagotchi& t, PetStatistics::Statistics* stats = nullptr) {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
 // MAIN UI COMPONENT
-// ═══════════════════════════════════════════════════════════════
 
 class TamagotchiApp {
 public:
@@ -745,9 +725,7 @@ public:
     }
 };
 
-// ═══════════════════════════════════════════════════════════════
 // MAIN
-// ═══════════════════════════════════════════════════════════════
 
 /*
 ⡀⡀⡀⡀⡀⡀⢠⣾⣿⡿⠋⡀⡀⡀⡀⡀⡀⡀⣠⣾⣿⠿⣛⣛⣿⣿⣿⡀⡀
